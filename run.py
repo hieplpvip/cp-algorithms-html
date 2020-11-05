@@ -57,7 +57,7 @@ def convertFile(file):
   if 'template' in params and params['template'] != 'default':
     return
 
-  text = '\n'.join(new_lines)
+  text = ''.join(new_lines)
   params['text'] = markdown.markdown(text, extensions=['extra'])
   params['baseurl'] = '../' * file.count('/')
   params['year'] = str(datetime.datetime.now().year)
