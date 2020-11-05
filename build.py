@@ -18,6 +18,7 @@ with open('src/templates/default.html') as f:
 
 
 def init():
+  print('Downloading e-maxx-eng...\n')
   shutil.rmtree(E_MAXX_ENG_DIR)
   dload.save_unzip(E_MAXX_ENG_URL, '.', True)
 
@@ -50,12 +51,15 @@ def downloadImages(html):
   for x in re.finditer(r'https?:\/\/[^ ]*\/(.*?)\.(png|jpe?g|gif)', html, flags=re.IGNORECASE):
     url = x.group()
     filename = os.path.basename(url)
+    print('Downloading {}...'.format(url))
     dload.save(url, 'build/img/' + filename)
     html = html.replace(url, 'img/' + filename)
   return html
 
 
-def convertFile(file):
+def convertFile(file, log_prefix):
+  print(log_prefix)
+  print('Parsing {}...'.format(file))
   with open(E_MAXX_ENG_DIR + file, 'r') as f:
     lines = f.readlines()
   new_lines = []
@@ -68,6 +72,7 @@ def convertFile(file):
       new_lines.append(line)
 
   if 'template' in params and params['template'] != 'default':
+    print('Skipped {}\n'.format(file))
     return
 
   params['baseurl'] = '../' * file.count('/')
@@ -86,9 +91,11 @@ def convertFile(file):
   with open(file, 'w') as f:
     f.write(html)
 
+  print('Generated {}\n'.format(file))
+
 
 if __name__ == '__main__':
   init()
   markdownFiles = listMarkdownFiles()
-  for file in markdownFiles:
-    convertFile(file)
+  for index, file in enumerate(markdownFiles):
+    convertFile(file, '[{}/{}]'.format(index + 1, len(markdownFiles)))
