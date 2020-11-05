@@ -7,3 +7,9 @@ Scripts to build articles from [e-maxx-eng](https://github.com/e-maxx-eng/e-maxx
 ```shell
 pip install Markdown dload
 ```
+
+## Build
+
+```shell
+python build.py
+```
