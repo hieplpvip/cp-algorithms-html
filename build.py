@@ -12,8 +12,6 @@ from distutils.dir_util import copy_tree
 
 E_MAXX_ENG_URL = 'https://github.com/e-maxx-eng/e-maxx-eng/archive/master.zip'
 E_MAXX_ENG_DIR = 'e-maxx-eng-master/src/'
-param_pattern = r'^\s*\<\!\-\-\?([a-z]+)\s+(.*)\-\-\>\s*$'
-fenced_pattern = r'^`{3,}[ ]*[\w#.+-]*'
 
 with open('src/templates/default.html') as f:
   htmlTemplate = f.read()
@@ -25,6 +23,7 @@ def init():
 
   shutil.rmtree('build', ignore_errors=True)
   os.mkdir('build')
+  os.mkdir('build/img')
   copy_tree('src/static', 'build')
 
 
@@ -43,30 +42,44 @@ def substituteParams(text, params):
   return text
 
 
+def removeSnippetNames(text):
+  return re.sub(r'^\`\`\`(\S+) .*$', r'```\1', text, flags=re.MULTILINE)
+
+
+def downloadImages(html):
+  for x in re.finditer(r'https?:\/\/[^ ]*\/(.*?)\.(png|jpe?g|gif)', html, flags=re.IGNORECASE):
+    url = x.group()
+    filename = os.path.basename(url)
+    dload.save(url, 'build/img/' + filename)
+    html = html.replace(url, 'img/' + filename)
+  return html
+
+
 def convertFile(file):
   with open(E_MAXX_ENG_DIR + file, 'r') as f:
     lines = f.readlines()
   new_lines = []
   params = {}
   for line in lines:
-    param = re.search(param_pattern, line)
-    fenced = re.search(fenced_pattern, line)
+    param = re.search(r'^\s*\<\!\-\-\?([a-z]+)\s+(.*)\-\-\>\s*$', line)
     if param:
       params[param.group(1)] = param.group(2)
-    elif fenced:
-      new_lines.append(fenced.group(0) + '\n')
     else:
       new_lines.append(line)
 
   if 'template' in params and params['template'] != 'default':
     return
 
-  text = ''.join(new_lines)
-  params['text'] = markdown.markdown(text, extensions=['extra'])
   params['baseurl'] = '../' * file.count('/')
   params['year'] = str(datetime.datetime.now().year)
+  params['imgroot'] = 'https://raw.githubusercontent.com/e-maxx-eng/e-maxx-eng/master/img'
+  text = ''.join(new_lines)
+  text = substituteParams(text, params)
+  text = removeSnippetNames(text)
+  params['text'] = markdown.markdown(text, extensions=['extra'])
 
   html = substituteParams(htmlTemplate, params)
+  html = downloadImages(html)
 
   file = 'build/' + file.replace('.md', '.html')
   os.makedirs(os.path.dirname(file), exist_ok=True)
