@@ -13,6 +13,7 @@ from distutils.dir_util import copy_tree
 E_MAXX_ENG_URL = 'https://github.com/e-maxx-eng/e-maxx-eng/archive/master.zip'
 E_MAXX_ENG_DIR = 'e-maxx-eng-master/src/'
 param_pattern = r'^\s*\<\!\-\-\?([a-z]+)\s+(.*)\-\-\>\s*$'
+fenced_pattern = r'^`{3,}[ ]*[\w#.+-]*'
 
 with open('src/templates/default.html') as f:
   htmlTemplate = f.read()
@@ -49,8 +50,11 @@ def convertFile(file):
   params = {}
   for line in lines:
     param = re.search(param_pattern, line)
+    fenced = re.search(fenced_pattern, line)
     if param:
       params[param.group(1)] = param.group(2)
+    elif fenced:
+      new_lines.append(fenced.group(0) + '\n')
     else:
       new_lines.append(line)
 
