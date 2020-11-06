@@ -11,7 +11,8 @@ import fnmatch
 from distutils.dir_util import copy_tree
 
 E_MAXX_ENG_URL = 'https://github.com/e-maxx-eng/e-maxx-eng/archive/master.zip'
-E_MAXX_ENG_DIR = 'e-maxx-eng-master/src/'
+E_MAXX_ENG_DIR = 'e-maxx-eng-master/'
+E_MAXX_ENG_SRC = 'e-maxx-eng-master/src/'
 
 with open('src/templates/default.html') as f:
   htmlTemplate = f.read()
@@ -19,7 +20,7 @@ with open('src/templates/default.html') as f:
 
 def init():
   print('Downloading e-maxx-eng...\n')
-  shutil.rmtree(E_MAXX_ENG_DIR)
+  shutil.rmtree(E_MAXX_ENG_DIR, ignore_errors=True)
   dload.save_unzip(E_MAXX_ENG_URL, '.', True)
 
   shutil.rmtree('build', ignore_errors=True)
@@ -30,9 +31,9 @@ def init():
 
 def listMarkdownFiles():
   markdownFiles = []
-  for root, dirnames, filenames in os.walk(E_MAXX_ENG_DIR):
+  for root, dirnames, filenames in os.walk(E_MAXX_ENG_SRC):
     for filename in fnmatch.filter(filenames, '*.md'):
-      markdownFiles.append(os.path.join(root, filename)[len(E_MAXX_ENG_DIR):])
+      markdownFiles.append(os.path.join(root, filename)[len(E_MAXX_ENG_SRC):])
 
   return markdownFiles
 
@@ -60,7 +61,7 @@ def downloadImages(html):
 def convertFile(file, log_prefix):
   print(log_prefix)
   print('Parsing {}...'.format(file))
-  with open(E_MAXX_ENG_DIR + file, 'r') as f:
+  with open(E_MAXX_ENG_SRC + file, 'r') as f:
     lines = f.readlines()
   new_lines = []
   params = {}
