@@ -1,102 +1,42 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
-import os
+from pathlib import Path
 import re
 import shutil
+import subprocess
+
 import dload
-import datetime
-import markdown
-import fnmatch
-from distutils.dir_util import copy_tree
 
-E_MAXX_ENG_URL = 'https://github.com/e-maxx-eng/e-maxx-eng/archive/master.zip'
-E_MAXX_ENG_DIR = 'e-maxx-eng-master/'
-E_MAXX_ENG_SRC = 'e-maxx-eng-master/src/'
-
-with open('src/templates/default.html') as f:
-  htmlTemplate = f.read()
-
-
-def init():
-  print('Downloading e-maxx-eng...\n')
-  shutil.rmtree(E_MAXX_ENG_DIR, ignore_errors=True)
-  dload.save_unzip(E_MAXX_ENG_URL, '.', True)
-
-  shutil.rmtree('build', ignore_errors=True)
-  os.mkdir('build')
-  os.mkdir('build/img')
-  copy_tree('src/static', 'build')
-
-
-def listMarkdownFiles():
-  markdownFiles = []
-  for root, dirnames, filenames in os.walk(E_MAXX_ENG_SRC):
-    for filename in fnmatch.filter(filenames, '*.md'):
-      markdownFiles.append(os.path.join(root, filename)[len(E_MAXX_ENG_SRC):])
-
-  return markdownFiles
-
-
-def substituteParams(text, params):
-  for key, value in params.items():
-    text = text.replace('&' + key + '&', value)
-  return text
-
-
-def removeSnippetNames(text):
-  return re.sub(r'^\`\`\`(\S+) .*$', r'```\1', text, flags=re.MULTILINE)
-
-
-def downloadImages(html):
-  for x in re.finditer(r'https?:\/\/[^ ]*\/(.*?)\.(png|jpe?g|gif)', html, flags=re.IGNORECASE):
-    url = x.group()
-    filename = os.path.basename(url)
-    print('Downloading {}...'.format(url))
-    dload.save(url, 'build/img/' + filename)
-    html = html.replace(url, 'img/' + filename)
-  return html
-
-
-def convertFile(file, log_prefix):
-  print(log_prefix)
-  print('Parsing {}...'.format(file))
-  with open(E_MAXX_ENG_SRC + file, 'r') as f:
-    lines = f.readlines()
-  new_lines = []
-  params = {}
-  for line in lines:
-    param = re.search(r'^\s*\<\!\-\-\?([a-z]+)\s+(.*)\-\-\>\s*$', line)
-    if param:
-      params[param.group(1)] = param.group(2)
-    else:
-      new_lines.append(line)
-
-  if 'template' in params and params['template'] != 'default':
-    print('Skipped {}\n'.format(file))
-    return
-
-  params['baseurl'] = '../' * file.count('/')
-  params['year'] = str(datetime.datetime.now().year)
-  params['imgroot'] = 'https://raw.githubusercontent.com/e-maxx-eng/e-maxx-eng/master/img'
-  text = ''.join(new_lines)
-  text = substituteParams(text, params)
-  text = removeSnippetNames(text)
-  params['text'] = markdown.markdown(text, extensions=['extra'])
-
-  html = substituteParams(htmlTemplate, params)
-  html = downloadImages(html)
-
-  file = 'build/' + file.replace('.md', '.html')
-  os.makedirs(os.path.dirname(file), exist_ok=True)
-  with open(file, 'w') as f:
-    f.write(html)
-
-  print('Generated {}\n'.format(file))
-
+CP_ALGORITHMS_URL = 'https://github.com/cp-algorithms/cp-algorithms/archive/master.zip'
+CP_ALGORITHMS_DIR = Path('cp-algorithms-master')
+BUILD_DIR = Path('build')
 
 if __name__ == '__main__':
-  init()
-  markdownFiles = listMarkdownFiles()
-  for index, file in enumerate(markdownFiles):
-    convertFile(file, '[{}/{}]'.format(index + 1, len(markdownFiles)))
+    print('Downloading cp-algorithms...')
+    shutil.rmtree(CP_ALGORITHMS_DIR, ignore_errors=True)
+    dload.save_unzip(CP_ALGORITHMS_URL, '.', True)
+
+    print('Modifying mkdocs.yml...')
+    with open(CP_ALGORITHMS_DIR / 'mkdocs.yml', 'r', encoding='utf8') as f:
+        config = f.read()
+    config = config.replace('https://polyfill.io/v3/polyfill.min.js?features=es6', 'javascript/polyfill.min.js')
+    config = config.replace('https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js', 'javascript/tex-mml-chtml.js')
+    with open(CP_ALGORITHMS_DIR / 'mkdocs.yml', 'w', encoding='utf8') as f:
+        f.write(config)
+
+    print('Building...')
+    subprocess.run('mkdocs build', shell=True, cwd=CP_ALGORITHMS_DIR, check=True)
+    shutil.rmtree('build', ignore_errors=True)
+    shutil.copytree(CP_ALGORITHMS_DIR / 'public', BUILD_DIR)
+
+    print('Downloading assets...')
+    JAVASCRIPT_DIR = BUILD_DIR / 'javascript'
+    WOFF_DIR = JAVASCRIPT_DIR / 'output/chtml/fonts/woff-v2'
+    WOFF_DIR.mkdir(parents=True, exist_ok=True)
+    dload.save('https://polyfill.io/v3/polyfill.min.js?features=es6', str(JAVASCRIPT_DIR / 'polyfill.min.js'))
+    dload.save('https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js', str(JAVASCRIPT_DIR / 'tex-mml-chtml.js'))
+    with open(BUILD_DIR / 'javascript/tex-mml-chtml.js', 'r', encoding='utf8') as f:
+        mathjax = f.read()
+    for woff in re.finditer(r'%%URL%%\/(MathJax_[^ ]*\.woff)', mathjax):
+        woff = woff.group(1)
+        dload.save('https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/' + woff, str(WOFF_DIR / woff))
