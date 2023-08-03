@@ -1,6 +1,6 @@
 # cp-algorithms-html
 
-Scripts to build articles from [cp-algorithms](https://github.com/cp-algorithms) into local HTML files.
+Scripts to build articles from [cp-algorithms](https://github.com/cp-algorithms/cp-algorithms) into local HTML files.
 
 ## Requirements
 
@@ -8,7 +8,7 @@ Scripts to build articles from [cp-algorithms](https://github.com/cp-algorithms)
 pip install Markdown dload
 ```
 
-Clone [cp-algorithms](https://github.com/cp-algorithms) and install mkdocs:
+Clone [cp-algorithms](https://github.com/cp-algorithms/cp-algorithms) and install mkdocs:
 
 ```shell
 git clone --recursive https://github.com/cp-algorithms/cp-algorithms.git
